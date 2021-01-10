@@ -148,6 +148,11 @@
             <artifactId>lwjgl-stb</artifactId>
             <classifier>${lwjgl.natives}</classifier>
         </dependency>
+        <dependency>
+            <groupId>com.hackoeur</groupId>
+            <artifactId>jglm</artifactId>
+            <version>1.0.0</version>
+        </dependency>
     </dependencies>
 
 </project>

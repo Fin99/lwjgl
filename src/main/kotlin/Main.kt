@@ -1,14 +1,16 @@
+import com.hackoeur.jglm.Mat4
+import com.hackoeur.jglm.Matrices.perspective
+import com.hackoeur.jglm.Vec3
 import org.lwjgl.BufferUtils
 import org.lwjgl.Version
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL20.*
-import org.lwjgl.opengl.GL30.glBindVertexArray
-import org.lwjgl.opengl.GL30.glGenVertexArrays
+import org.lwjgl.opengl.GL30.*
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
+import java.nio.ByteBuffer
 import java.nio.FloatBuffer
 import java.nio.IntBuffer
 
@@ -17,20 +19,74 @@ private var window: Long = 0
 
 var vertices: FloatBuffer = createFloatBuffer(
     floatArrayOf(
-        0.5f, 0.5f, 0.0f,  // Верхний правый угол
-        0.5f, -0.5f, 0.0f,  // Нижний правый угол
-        -0.5f, -0.5f, 0.0f,  // Нижний левый угол
-        -0.5f, 0.5f, 0.0f   // Верхний левый угол
+        -0.5f, -0.5f, -0.5f,
+        0.5f, -0.5f, -0.5f,
+        0.5f, 0.5f, -0.5f,
+        0.5f, 0.5f, -0.5f,
+        -0.5f, 0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+
+        -0.5f, -0.5f, 0.5f,
+        0.5f, -0.5f, 0.5f,
+        0.5f, 0.5f, 0.5f,
+        0.5f, 0.5f, 0.5f,
+        -0.5f, 0.5f, 0.5f,
+        -0.5f, -0.5f, 0.5f,
+
+        -0.5f, 0.5f, 0.5f,
+        -0.5f, 0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, -0.5f,
+        -0.5f, -0.5f, 0.5f,
+        -0.5f, 0.5f, 0.5f,
+
+        0.5f, 0.5f, 0.5f,
+        0.5f, 0.5f, -0.5f,
+        0.5f, -0.5f, -0.5f,
+        0.5f, -0.5f, -0.5f,
+        0.5f, -0.5f, 0.5f,
+        0.5f, 0.5f, 0.5f,
+
+        -0.5f, -0.5f, -0.5f,
+        0.5f, -0.5f, -0.5f,
+        0.5f, -0.5f, 0.5f,
+        0.5f, -0.5f, 0.5f,
+        -0.5f, -0.5f, 0.5f,
+        -0.5f, -0.5f, -0.5f,
+
+        -0.5f, 0.5f, -0.5f,
+        0.5f, 0.5f, -0.5f,
+        0.5f, 0.5f, 0.5f,
+        0.5f, 0.5f, 0.5f,
+        -0.5f, 0.5f, 0.5f,
+        -0.5f, 0.5f, -0.5f,
     )
 )
 
-var indices = createIntBuffer(
-    intArrayOf(
-        0, 1, 3,   // Первый треугольник
-        1, 2, 3    // Второй треугольник
-    )
+//var indices = createIntBuffer(
+//    intArrayOf(
+//        0, 1, 3,   // Первый треугольник
+//        1, 2, 3    // Второй треугольник
+//    )
+//)
+
+var cubePositions: Array<Vec3> = arrayOf(
+    Vec3(0.0f, 0.0f, 0.0f),
+    Vec3(2.0f, 5.0f, -15.0f),
+    Vec3(-1.5f, -2.2f, -2.5f),
+    Vec3(-3.8f, -2.0f, -12.3f),
+    Vec3(2.4f, -0.4f, -3.5f),
+    Vec3(-1.7f, 3.0f, -7.5f),
+    Vec3(1.3f, -2.0f, -2.5f),
+    Vec3(1.5f, 2.0f, -2.5f),
+    Vec3(1.5f, 0.2f, -1.5f),
+    Vec3(-1.3f, 1.0f, -1.5f)
 )
 
+lateinit var shader: Shader
+
+const val WIDTH = 640
+const val HEIGHT = 480
 
 fun main() {
     println("Hello LWJGL " + Version.getVersion() + "!")
@@ -54,7 +110,7 @@ fun init() {
     glfwWindowHint(GLFW_VISIBLE, GLFW_FALSE)
     glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE)
 
-    window = glfwCreateWindow(640, 480, "Hello World!", NULL, NULL)
+    window = glfwCreateWindow(WIDTH, HEIGHT, "Hello World!", NULL, NULL)
     if (window == NULL) throw RuntimeException("Failed to create the GLFW window")
 
     glfwSetKeyCallback(window) { window: Long, key: Int, scancode: Int, action: Int, mods: Int ->
@@ -85,7 +141,7 @@ private fun loop() {
     GL.createCapabilities()
     glClearColor(0f, 0f, 0f, 1.0f)
 
-    val shader = Shader("shaders/vertex_shader.gl", "shaders/fragment_shader.gl")
+    shader = Shader("shaders/vertex_shader.gl", "shaders/fragment_shader.gl")
     shader.use()
 
     val vao = glGenVertexArrays()
@@ -98,25 +154,72 @@ private fun loop() {
     glEnableVertexAttribArray(0)
     glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-    val vbo2 = glGenBuffers()
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo2)
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW)
-    glBindBuffer(GL_ARRAY_BUFFER, 0)
+//    val texture = glGenTextures()
+//    glBindTexture(GL_TEXTURE_2D, texture)
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+//    val imagePath = object {}.javaClass.getResource("texture/container.png")
+//    val myPicture = ImageIO.read(File(imagePath.toURI()))
+//    glTexImage2D(
+//        GL_TEXTURE_2D,
+//        0,
+//        GL_RGB,
+//        myPicture.width,
+//        myPicture.height,
+//        0,
+//        GL_RGB,
+//        GL_UNSIGNED_BYTE,
+//        createByteBuffer(myPicture.data.dataBuffer.let { it as DataBufferByte }.data)
+//    )
+//    glGenerateMipmap(GL_TEXTURE_2D)
+//    glBindTexture(GL_TEXTURE_2D, 0)
+
+//    val vbo2 = glGenBuffers()
+//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo2)
+//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW)
+//    glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     glBindVertexArray(0)
 //    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
     while (!glfwWindowShouldClose(window)) {
-
+        glfwPollEvents()
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
+//        glActiveTexture(GL_TEXTURE0)
+//        glBindTexture(GL_TEXTURE_2D, texture)
+//        glUniform1i(glGetUniformLocation(shader.program, "ourTexture"), 0)
+
+        // Create transformations
+        var view = Mat4()
+        var projection: Mat4
+        view = view.translate(Vec3(0.0f, 0.0f, -3.0f))
+        projection = perspective(45.0f, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
+        // Get their uniform location
+        val modelLoc = glGetUniformLocation(shader.program, "model")
+        val viewLoc = glGetUniformLocation(shader.program, "view")
+        val projLoc = glGetUniformLocation(shader.program, "projection")
+        // Pass the matrices to the shader
+        glUniformMatrix4fv(viewLoc, false, createFloatMat4(view.buffer))
+        // Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
+        glUniformMatrix4fv(projLoc, false, createFloatMat4(projection.buffer))
+
         glBindVertexArray(vao)
-        glDrawElements(GL_TRIANGLES, indices.capacity(), GL_UNSIGNED_INT, 0)
+        for (i in 0..9) {
+            // Calculate the model matrix for each object and pass it to shader before drawing
+            var model = Mat4()
+            model = model.translate(cubePositions[i])
+//            val angle = 20.0f * i
+//            model = model.multiply(rotate(angle, Vec3(1.0f, 0.3f, 0.5f)))
+            glUniformMatrix4fv(modelLoc, false, createFloatMat4(model.buffer))
+
+            glDrawArrays(GL_TRIANGLES, 0, vertices.capacity())
+        }
         glBindVertexArray(0)
 
         glfwSwapBuffers(window)
-
-        glfwPollEvents()
     }
 }
 
@@ -127,8 +230,22 @@ fun createFloatBuffer(data: FloatArray): FloatBuffer {
     return buffer
 }
 
+fun createFloatMat4(data: FloatBuffer): FloatBuffer {
+    val buffer = BufferUtils.createFloatBuffer(16)
+    buffer.put(data)
+    buffer.flip()
+    return buffer
+}
+
 fun createIntBuffer(data: IntArray): IntBuffer {
     val buffer = BufferUtils.createIntBuffer(data.size)
+    buffer.put(data)
+    buffer.flip()
+    return buffer
+}
+
+fun createByteBuffer(data: ByteArray): ByteBuffer {
+    val buffer = BufferUtils.createByteBuffer(data.size)
     buffer.put(data)
     buffer.flip()
     return buffer
