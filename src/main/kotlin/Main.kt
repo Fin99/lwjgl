@@ -154,49 +154,15 @@ private fun loop() {
     glEnableVertexAttribArray(0)
     glBindBuffer(GL_ARRAY_BUFFER, 0)
 
-//    val texture = glGenTextures()
-//    glBindTexture(GL_TEXTURE_2D, texture)
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-//    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-//    val imagePath = object {}.javaClass.getResource("texture/container.png")
-//    val myPicture = ImageIO.read(File(imagePath.toURI()))
-//    glTexImage2D(
-//        GL_TEXTURE_2D,
-//        0,
-//        GL_RGB,
-//        myPicture.width,
-//        myPicture.height,
-//        0,
-//        GL_RGB,
-//        GL_UNSIGNED_BYTE,
-//        createByteBuffer(myPicture.data.dataBuffer.let { it as DataBufferByte }.data)
-//    )
-//    glGenerateMipmap(GL_TEXTURE_2D)
-//    glBindTexture(GL_TEXTURE_2D, 0)
-
-//    val vbo2 = glGenBuffers()
-//    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo2)
-//    glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW)
-//    glBindBuffer(GL_ARRAY_BUFFER, 0)
-
     glBindVertexArray(0)
-//    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
     while (!glfwWindowShouldClose(window)) {
         glfwPollEvents()
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-//        glActiveTexture(GL_TEXTURE0)
-//        glBindTexture(GL_TEXTURE_2D, texture)
-//        glUniform1i(glGetUniformLocation(shader.program, "ourTexture"), 0)
-
         // Create transformations
-        var view = Mat4()
-        var projection: Mat4
-        view = view.translate(Vec3(0.0f, 0.0f, -3.0f))
-        projection = perspective(45.0f, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
+        val view = Mat4.MAT4_IDENTITY.translate(Vec3(0.0f, 0.0f, -3.0f))
+        val projection: Mat4 = perspective(45.0f, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
         // Get their uniform location
         val modelLoc = glGetUniformLocation(shader.program, "model")
         val viewLoc = glGetUniformLocation(shader.program, "view")
@@ -209,8 +175,7 @@ private fun loop() {
         glBindVertexArray(vao)
         for (i in 0..9) {
             // Calculate the model matrix for each object and pass it to shader before drawing
-            var model = Mat4()
-            model = model.translate(cubePositions[i])
+            val model = Mat4.MAT4_IDENTITY.translate(cubePositions[i].unitVector)
 //            val angle = 20.0f * i
 //            model = model.multiply(rotate(angle, Vec3(1.0f, 0.3f, 0.5f)))
             glUniformMatrix4fv(modelLoc, false, createFloatMat4(model.buffer))
