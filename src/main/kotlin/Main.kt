@@ -17,13 +17,19 @@ private var window: Long = 0
 
 var vertices: FloatBuffer = createFloatBuffer(
     floatArrayOf(
-        -0.5f, -0.5f, 0.0f,
-        0.5f, -0.5f, 0.0f,
-        0.0f, 0.5f, 0.0f
+        0.5f, 0.5f, 0.0f,  // Верхний правый угол
+        0.5f, -0.5f, 0.0f,  // Нижний правый угол
+        -0.5f, -0.5f, 0.0f,  // Нижний левый угол
+        -0.5f, 0.5f, 0.0f   // Верхний левый угол
     )
 )
 
-var indices = createIntBuffer(intArrayOf(0, 1, 2))
+var indices = createIntBuffer(
+    intArrayOf(
+        0, 1, 3,   // Первый треугольник
+        1, 2, 3    // Второй треугольник
+    )
+)
 
 
 fun main() {
@@ -78,26 +84,9 @@ fun init() {
 private fun loop() {
     GL.createCapabilities()
     glClearColor(0f, 0f, 0f, 1.0f)
-//
-//    val vertexShader = glCreateShader(GL_VERTEX_SHADER)
-//    glShaderSource(vertexShader, object {}.javaClass.getResource("shaders/vertex_shader.gl").readText())
-//    glCompileShader(vertexShader)
-//    println(glGetShaderi(vertexShader, GL_COMPILE_STATUS))
-//
-//    val fragmentShader = glCreateShader(GL_FRAGMENT_SHADER)
-//    glShaderSource(fragmentShader, object {}.javaClass.getResource("shaders/fragment_shader.gl").readText())
-//    glCompileShader(fragmentShader)
-//    println(glGetShaderi(fragmentShader, GL_COMPILE_STATUS))
-//
-//    val shaderProgram = glCreateProgram()
-//    glAttachShader(shaderProgram, vertexShader)
-//    glAttachShader(shaderProgram, fragmentShader)
-//    glLinkProgram(shaderProgram)
-//
-//
-//    glDeleteShader(vertexShader)
-//    glDeleteShader(fragmentShader)
-//        glUseProgram(shaderProgram)
+
+    val shader = Shader("shaders/vertex_shader.gl", "shaders/fragment_shader.gl")
+    shader.use()
 
     val vao = glGenVertexArrays()
     glBindVertexArray(vao)
@@ -106,27 +95,27 @@ private fun loop() {
     glBindBuffer(GL_ARRAY_BUFFER, vbo1)
     glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
     glVertexAttribPointer(0, 3, GL_FLOAT, false, 0, 0)
-//    glEnableVertexAttribArray(0)
+    glEnableVertexAttribArray(0)
     glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     val vbo2 = glGenBuffers()
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vbo2)
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, indices, GL_STATIC_DRAW)
-//    glBindBuffer(GL_ARRAY_BUFFER, 0)
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
 
     glBindVertexArray(0)
+//    glPolygonMode(GL_FRONT_AND_BACK, GL_LINE)
 
     while (!glfwWindowShouldClose(window)) {
 
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
         glBindVertexArray(vao)
-        glEnableVertexAttribArray(0)
-        glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0)
-        glDisableVertexAttribArray(0)
+        glDrawElements(GL_TRIANGLES, indices.capacity(), GL_UNSIGNED_INT, 0)
         glBindVertexArray(0)
 
         glfwSwapBuffers(window)
+
         glfwPollEvents()
     }
 }
