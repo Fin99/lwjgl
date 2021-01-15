@@ -8,14 +8,13 @@ import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
+import org.lwjgl.stb.STBImage.*
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
-import java.awt.image.DataBufferByte
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.FloatBuffer
 import java.nio.IntBuffer
-import javax.imageio.ImageIO
 
 
 private var window: Long = 0
@@ -166,19 +165,45 @@ private fun loop() {
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
+
+
     val imagePath = object {}.javaClass.getResource("texture/container.png")
-    val myPicture = ImageIO.read(File(imagePath.toURI()))
-    println("Width ${myPicture.width}, Height ${myPicture.height}, Data ${myPicture.data.dataBuffer.let { it as DataBufferByte }.data[1000]}")
+    val imageBuffer = createByteBuffer(File(imagePath.toURI()).readBytes())
+    var image: ByteBuffer
+    var imageWidth: Int
+    var imageHeight: Int
+    var imageComponents: Int
+
+    stackPush().use { stack ->
+        val width = stack.mallocInt(1)
+        val height = stack.mallocInt(1)
+        val components = stack.mallocInt(1)
+
+        if (!stbi_info_from_memory(imageBuffer, width, height, components)) {
+            throw RuntimeException("Failed to read image information: " + stbi_failure_reason())
+        } else {
+            println("OK with reason: " + stbi_failure_reason())
+        }
+        // Decode the image
+        image = stbi_load_from_memory(imageBuffer, width, height, components, 0)!!
+        imageWidth = width[0]
+        imageHeight = height[0]
+        imageComponents = components[0]
+    }
+
+    println("Width ${imageWidth}, Height ${imageHeight}, Data ${0}")
+
+
     glTexImage2D(
         GL_TEXTURE_2D,
         0,
         GL_RGB,
-        myPicture.width,
-        myPicture.height,
+        imageWidth,
+        imageHeight,
         0,
         GL_RGB,
         GL_UNSIGNED_BYTE,
-        createByteBuffer(myPicture.data.dataBuffer.let { it as DataBufferByte }.data)
+        image
     )
     glGenerateMipmap(GL_TEXTURE_2D)
     glBindTexture(GL_TEXTURE_2D, 0)
