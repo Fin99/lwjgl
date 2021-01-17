@@ -1,8 +1,8 @@
 import com.hackoeur.jglm.Mat4
+import com.hackoeur.jglm.Matrices
 import com.hackoeur.jglm.Matrices.perspective
-import com.hackoeur.jglm.Matrices.rotate
 import com.hackoeur.jglm.Vec3
-import com.hackoeur.jglm.support.FastMath.toRadians
+import com.hackoeur.jglm.support.FastMath
 import org.lwjgl.Version
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
@@ -70,28 +70,16 @@ var lastFrame = 0.0f
 var lastX = 400.0
 var lastY = 300.0
 
-var cubePositions: Array<Vec3> = arrayOf(
-    Vec3(0.0f, 0.0f, 0.0f),
-    Vec3(2.0f, 5.0f, -15.0f),
-    Vec3(-1.5f, -2.2f, -2.5f),
-    Vec3(-3.8f, -2.0f, -12.3f),
-    Vec3(2.4f, -0.4f, -3.5f),
-    Vec3(-1.7f, 3.0f, -7.5f),
-    Vec3(1.3f, -2.0f, -2.5f),
-    Vec3(1.5f, 2.0f, -2.5f),
-    Vec3(1.5f, 0.2f, -1.5f),
-    Vec3(-1.3f, 1.0f, -1.5f)
-)
+var cubePositions = Vec3(-2.0f, 0.0f, -5.0f)
 
 var lightPositions: Array<Vec3> = arrayOf(
-    Vec3(0.7f, 0.2f, 2.0f),
-    Vec3(2.3f, -3.3f, -4.0f),
-    Vec3(-4.0f, 2.0f, -12.0f),
-    Vec3(0.0f, 0.0f, -3.0f),
+    Vec3(-2f, 1f, -5f)
 )
 
+lateinit var blenderShader: Shader
 lateinit var cubeShader: Shader
 lateinit var lightShader: Shader
+lateinit var snowShader: Shader
 
 const val WIDTH = 800
 const val HEIGHT = 600
@@ -186,9 +174,46 @@ private fun loop() {
     GL.createCapabilities()
     glEnable(GL_DEPTH_TEST)
 
+    blenderShader = Shader("shaders/blender/vertex_shader.gl", "shaders/blender/fragment_shader.gl")
     cubeShader = Shader("shaders/cube/vertex_shader.gl", "shaders/cube/fragment_shader.gl")
+    lightShader = Shader("shaders/light/vertex_shader.gl", "shaders/light/fragment_shader.gl")
+    snowShader = Shader("shaders/snow/vertex_shader.gl", "shaders/snow/fragment_shader.gl")
 
-    val ourModel = Model("untitled.obj")
+    val cubeVao = glGenVertexArrays()
+    val vbo1 = glGenBuffers()
+
+    glBindVertexArray(cubeVao)
+    glBindBuffer(GL_ARRAY_BUFFER, vbo1)
+    glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 8 * 4, 0)
+    glEnableVertexAttribArray(0)
+    glVertexAttribPointer(1, 3, GL_FLOAT, false, 8 * 4, 3 * 4)
+    glEnableVertexAttribArray(1)
+    glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * 4, 6 * 4)
+    glEnableVertexAttribArray(2)
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+    val lightVao = glGenVertexArrays()
+    val vbo = glGenBuffers()
+
+    glBindVertexArray(lightVao)
+    glBindBuffer(GL_ARRAY_BUFFER, vbo)
+    glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
+    glVertexAttribPointer(0, 3, GL_FLOAT, false, 8 * 4, 0)
+    glEnableVertexAttribArray(0)
+    glBindBuffer(GL_ARRAY_BUFFER, 0)
+
+    val diffuseMap: Int = loadTexture(object {}.javaClass.getResource("textures/container2.png").path)
+    val specularMap: Int = loadTexture(object {}.javaClass.getResource("textures/container2_specular.png").path)
+
+    cubeShader.use()
+    cubeShader.setInt("material.diffuse", 0)
+    cubeShader.setInt("material.specular", 1)
+
+    val blenderModel = Model("blender.obj")
+    val torModel = Model("tor.obj")
+    val sphereModel = Model("sphere.obj")
+    val monkeyModel = Model("monkey.obj")
 
     while (!glfwWindowShouldClose(window)) {
         val currentFrame = glfwGetTime().toFloat()
@@ -199,27 +224,138 @@ private fun loop() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f)
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-        cubeShader.use()
-        // view/projection transformations
-        var projection =
-            perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
-        var view = camera.getViewMatrix()
-        cubeShader.setMat4("projection", projection)
-        cubeShader.setMat4("view", view)
+        cubeDraw(cubeVao, diffuseMap, specularMap)
 
-        var model = Mat4.MAT4_IDENTITY
-        model = model.translate(cubePositions[0])
-        val angle = 20.0 * 0
-        model = model.multiply(rotate(toRadians(angle).toFloat(), Vec3(1.0f, 0.0f, 0.0f)))
-        model = model.multiply(rotate(toRadians(angle * 0.3).toFloat(), Vec3(0.0f, 1.0f, 0.0f)))
-        model = model.multiply(rotate(toRadians(angle * 0.5).toFloat(), Vec3(0.0f, 0.0f, 1.0f)))
-        cubeShader.setMat4("model", model)
+        lightDraw(lightVao)
 
-        ourModel.draw(cubeShader)
+        blenderDraw(blenderModel, Vec3(0f, 0f, -5f))
+        blenderDraw(torModel, Vec3(5f, 0f, -5f))
+        blenderDraw(sphereModel, Vec3(5f, 5f, -5f))
+        blenderDraw(monkeyModel, Vec3(0f, 5f, -5f))
 
         glfwSwapBuffers(window)
         glfwPollEvents()
     }
+}
+
+fun cubeDraw(cubeVao: Int, diffuseMap: Int, specularMap: Int) {
+    cubeShader.use()
+    cubeShader.setVec3("viewPos", camera.position)
+    cubeShader.setFloat("material.shininess", 32.0f)
+
+    cubeShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f)
+    cubeShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f)
+    cubeShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f)
+    cubeShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f)
+    // point light 1
+    cubeShader.setVec3("pointLights[0].position", lightPositions[0])
+    cubeShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f)
+    cubeShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f)
+    cubeShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f)
+    cubeShader.setFloat("pointLights[0].constant", 1.0f)
+    cubeShader.setFloat("pointLights[0].linear", 0.09f)
+    cubeShader.setFloat("pointLights[0].quadratic", 0.032f)
+    // point light 2
+//    cubeShader.setVec3("pointLights[1].position", lightPositions[1])
+//    cubeShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f)
+//    cubeShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f)
+//    cubeShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f)
+//    cubeShader.setFloat("pointLights[1].constant", 1.0f)
+//    cubeShader.setFloat("pointLights[1].linear", 0.09f)
+//    cubeShader.setFloat("pointLights[1].quadratic", 0.032f)
+//    // point light 3
+//    cubeShader.setVec3("pointLights[2].position", lightPositions[2])
+//    cubeShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f)
+//    cubeShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f)
+//    cubeShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f)
+//    cubeShader.setFloat("pointLights[2].constant", 1.0f)
+//    cubeShader.setFloat("pointLights[2].linear", 0.09f)
+//    cubeShader.setFloat("pointLights[2].quadratic", 0.032f)
+//    // point light 4
+//    cubeShader.setVec3("pointLights[3].position", lightPositions[3])
+//    cubeShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f)
+//    cubeShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f)
+//    cubeShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f)
+//    cubeShader.setFloat("pointLights[3].constant", 1.0f)
+//    cubeShader.setFloat("pointLights[3].linear", 0.09f)
+//    cubeShader.setFloat("pointLights[3].quadratic", 0.032f)
+    // spotLight
+    cubeShader.setVec3("spotLight.position", camera.position)
+    cubeShader.setVec3("spotLight.direction", camera.front)
+    cubeShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f)
+    cubeShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f)
+    cubeShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f)
+    cubeShader.setFloat("spotLight.constant", 1.0f)
+    cubeShader.setFloat("spotLight.linear", 0.09f)
+    cubeShader.setFloat("spotLight.quadratic", 0.032f)
+    cubeShader.setFloat("spotLight.cutOff", FastMath.cos(FastMath.toRadians(12.5)).toFloat())
+    cubeShader.setFloat("spotLight.outerCutOff", FastMath.cos(FastMath.toRadians(15.0)).toFloat())
+
+    // view/projection transformations
+    var projection =
+        perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
+    var view = camera.getViewMatrix()
+    cubeShader.setMat4("projection", projection)
+    cubeShader.setMat4("view", view)
+
+    // bind diffuse map
+    glActiveTexture(GL_TEXTURE0)
+    glBindTexture(GL_TEXTURE_2D, diffuseMap)
+    // bind specular map
+    glActiveTexture(GL_TEXTURE1)
+    glBindTexture(GL_TEXTURE_2D, specularMap)
+
+// render containers
+    glBindVertexArray(cubeVao)
+
+    var model = Mat4.MAT4_IDENTITY
+    model = model.translate(cubePositions)
+    val angle = 20.0 * 1
+
+//            model = model.rotate(toRadians(angle).toFloat(), Vec3(1.0f, 0.3f, 0.5f))
+    model = model.multiply(Matrices.rotate(FastMath.toRadians(angle).toFloat(), Vec3(1.0f, 0.0f, 0.0f)))
+    model = model.multiply(Matrices.rotate(FastMath.toRadians(angle * 0.3).toFloat(), Vec3(0.0f, 1.0f, 0.0f)))
+    model = model.multiply(Matrices.rotate(FastMath.toRadians(angle * 0.5).toFloat(), Vec3(0.0f, 0.0f, 1.0f)))
+    cubeShader.setMat4("model", model)
+
+    glDrawArrays(GL_TRIANGLES, 0, 36)
+}
+
+fun lightDraw(lightVao: Int) {
+    var projection =
+        perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
+    var view = camera.getViewMatrix()
+    // also draw the lamp object(s)
+    lightShader.use()
+    lightShader.setMat4("projection", projection)
+    lightShader.setMat4("view", view)
+
+    // we now draw as many light bulbs as we have point lights.
+    glBindVertexArray(lightVao)
+    for (i in 0..0) {
+        var model = Mat4.MAT4_IDENTITY
+        model = model.translate(lightPositions[i])
+        model = model.scale(Vec3(0.2f, 0.2f, 0.2f)) // Make it a smaller cube
+        lightShader.setMat4("model", model)
+        glDrawArrays(GL_TRIANGLES, 0, 36)
+    }
+}
+
+fun blenderDraw(blenderModel: Model, translate: Vec3) {
+    blenderShader.use()
+    // view/projection transformations
+    var projection =
+        perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
+    var view = camera.getViewMatrix()
+    blenderShader.setMat4("projection", projection)
+    blenderShader.setMat4("view", view)
+
+    var model = Mat4.MAT4_IDENTITY
+    model = model.translate(translate)
+    blenderShader.setMat4("model", model)
+
+    blenderModel.draw(blenderShader)
+
 }
 
 
