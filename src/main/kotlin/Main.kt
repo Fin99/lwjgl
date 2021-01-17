@@ -2,21 +2,15 @@ import com.hackoeur.jglm.Mat4
 import com.hackoeur.jglm.Matrices.perspective
 import com.hackoeur.jglm.Matrices.rotate
 import com.hackoeur.jglm.Vec3
-import com.hackoeur.jglm.support.FastMath.*
-import org.lwjgl.BufferUtils
+import com.hackoeur.jglm.support.FastMath.toRadians
 import org.lwjgl.Version
 import org.lwjgl.glfw.Callbacks.glfwFreeCallbacks
 import org.lwjgl.glfw.GLFW.*
 import org.lwjgl.glfw.GLFWErrorCallback
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL30.*
-import org.lwjgl.stb.STBImage.stbi_failure_reason
-import org.lwjgl.stb.STBImage.stbi_load
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
-import java.io.File
-import java.io.IOException
-import java.nio.ByteBuffer
 import java.nio.FloatBuffer
 
 
@@ -193,38 +187,8 @@ private fun loop() {
     glEnable(GL_DEPTH_TEST)
 
     cubeShader = Shader("shaders/cube/vertex_shader.gl", "shaders/cube/fragment_shader.gl")
-    lightShader = Shader("shaders/light/vertex_shader.gl", "shaders/light/fragment_shader.gl")
 
-    val cubeVao = glGenVertexArrays()
-    val vbo1 = glGenBuffers()
-
-    glBindVertexArray(cubeVao)
-    glBindBuffer(GL_ARRAY_BUFFER, vbo1)
-    glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 8 * 4, 0)
-    glEnableVertexAttribArray(0)
-    glVertexAttribPointer(1, 3, GL_FLOAT, false, 8 * 4, 3 * 4)
-    glEnableVertexAttribArray(1)
-    glVertexAttribPointer(2, 2, GL_FLOAT, false, 8 * 4, 6 * 4)
-    glEnableVertexAttribArray(2)
-    glBindBuffer(GL_ARRAY_BUFFER, 0)
-
-    val lightVao = glGenVertexArrays()
-    val vbo = glGenBuffers()
-
-    glBindVertexArray(lightVao)
-    glBindBuffer(GL_ARRAY_BUFFER, vbo)
-    glBufferData(GL_ARRAY_BUFFER, vertices, GL_STATIC_DRAW)
-    glVertexAttribPointer(0, 3, GL_FLOAT, false, 8 * 4, 0)
-    glEnableVertexAttribArray(0)
-    glBindBuffer(GL_ARRAY_BUFFER, 0)
-
-    val diffuseMap: Int = loadTexture("textures/container2.png")
-    val specularMap: Int = loadTexture("textures/container2_specular.png")
-
-    cubeShader.use()
-    cubeShader.setInt("material.diffuse", 0)
-    cubeShader.setInt("material.specular", 1)
+    val ourModel = Model("untitled.obj")
 
     while (!glfwWindowShouldClose(window)) {
         val currentFrame = glfwGetTime().toFloat()
@@ -236,57 +200,6 @@ private fun loop() {
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
         cubeShader.use()
-        cubeShader.setVec3("viewPos", camera.position)
-        cubeShader.setFloat("material.shininess", 32.0f)
-
-        cubeShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f)
-        cubeShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f)
-        cubeShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f)
-        cubeShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f)
-        // point light 1
-        cubeShader.setVec3("pointLights[0].position", lightPositions[0])
-        cubeShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f)
-        cubeShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f)
-        cubeShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f)
-        cubeShader.setFloat("pointLights[0].constant", 1.0f)
-        cubeShader.setFloat("pointLights[0].linear", 0.09f)
-        cubeShader.setFloat("pointLights[0].quadratic", 0.032f)
-        // point light 2
-        cubeShader.setVec3("pointLights[1].position", lightPositions[1])
-        cubeShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f)
-        cubeShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f)
-        cubeShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f)
-        cubeShader.setFloat("pointLights[1].constant", 1.0f)
-        cubeShader.setFloat("pointLights[1].linear", 0.09f)
-        cubeShader.setFloat("pointLights[1].quadratic", 0.032f)
-        // point light 3
-        cubeShader.setVec3("pointLights[2].position", lightPositions[2])
-        cubeShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f)
-        cubeShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f)
-        cubeShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f)
-        cubeShader.setFloat("pointLights[2].constant", 1.0f)
-        cubeShader.setFloat("pointLights[2].linear", 0.09f)
-        cubeShader.setFloat("pointLights[2].quadratic", 0.032f)
-        // point light 4
-        cubeShader.setVec3("pointLights[3].position", lightPositions[3])
-        cubeShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f)
-        cubeShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f)
-        cubeShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f)
-        cubeShader.setFloat("pointLights[3].constant", 1.0f)
-        cubeShader.setFloat("pointLights[3].linear", 0.09f)
-        cubeShader.setFloat("pointLights[3].quadratic", 0.032f)
-        // spotLight
-        cubeShader.setVec3("spotLight.position", camera.position)
-        cubeShader.setVec3("spotLight.direction", camera.front)
-        cubeShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f)
-        cubeShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f)
-        cubeShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f)
-        cubeShader.setFloat("spotLight.constant", 1.0f)
-        cubeShader.setFloat("spotLight.linear", 0.09f)
-        cubeShader.setFloat("spotLight.quadratic", 0.032f)
-        cubeShader.setFloat("spotLight.cutOff", cos(toRadians(12.5)).toFloat())
-        cubeShader.setFloat("spotLight.outerCutOff", cos(toRadians(15.0)).toFloat())
-
         // view/projection transformations
         var projection =
             perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
@@ -294,126 +207,21 @@ private fun loop() {
         cubeShader.setMat4("projection", projection)
         cubeShader.setMat4("view", view)
 
-        // bind diffuse map
-        glActiveTexture(GL_TEXTURE0)
-        glBindTexture(GL_TEXTURE_2D, diffuseMap)
-        // bind specular map
-        glActiveTexture(GL_TEXTURE1)
-        glBindTexture(GL_TEXTURE_2D, specularMap)
+        var model = Mat4.MAT4_IDENTITY
+        model = model.translate(cubePositions[0])
+        val angle = 20.0 * 0
+        model = model.multiply(rotate(toRadians(angle).toFloat(), Vec3(1.0f, 0.0f, 0.0f)))
+        model = model.multiply(rotate(toRadians(angle * 0.3).toFloat(), Vec3(0.0f, 1.0f, 0.0f)))
+        model = model.multiply(rotate(toRadians(angle * 0.5).toFloat(), Vec3(0.0f, 0.0f, 1.0f)))
+        cubeShader.setMat4("model", model)
 
-// render containers
-        glBindVertexArray(cubeVao)
-        for (i in 0..9) {
-            // calculate the model matrix for each object and pass it to shader before drawing
-            var model = Mat4.MAT4_IDENTITY
-            model = model.translate(cubePositions[i])
-            val angle = 20.0 * i
+        ourModel.draw(cubeShader)
 
-//            model = model.rotate(toRadians(angle).toFloat(), Vec3(1.0f, 0.3f, 0.5f))
-            model = model.multiply(rotate(toRadians(angle).toFloat(), Vec3(1.0f, 0.0f, 0.0f)))
-            model = model.multiply(rotate(toRadians(angle*0.3).toFloat(), Vec3(0.0f, 1.0f, 0.0f)))
-            model = model.multiply(rotate(toRadians(angle*0.5).toFloat(), Vec3(0.0f, 0.0f, 1.0f)))
-            cubeShader.setMat4("model", model)
-
-            glDrawArrays(GL_TRIANGLES, 0, 36)
-        }
-
-        // also draw the lamp object(s)
-        lightShader.use()
-        lightShader.setMat4("projection", projection)
-        lightShader.setMat4("view", view)
-
-        // we now draw as many light bulbs as we have point lights.
-        glBindVertexArray(lightVao)
-        for (i in 0..3) {
-            var model = Mat4.MAT4_IDENTITY
-            model = model.translate(lightPositions[i])
-            model = model.scale(Vec3(0.2f, 0.2f, 0.2f)) // Make it a smaller cube
-            lightShader.setMat4("model", model)
-            glDrawArrays(GL_TRIANGLES, 0, 36)
-        }
-
-
-        // glfw: swap buffers and poll IO events (keys pressed/released, mouse moved etc.)
-        // -------------------------------------------------------------------------------
         glfwSwapBuffers(window)
         glfwPollEvents()
-
-//
-//
-//        glActiveTexture(GL_TEXTURE0)
-//        glBindTexture(GL_TEXTURE_2D, texture)
-//        glUniform1i(glGetUniformLocation(cubeShader.program, "ourTexture"), 0)
-//
-//        // Create transformations
-//        val view = camera.getViewMatrix()
-//        val projection: Mat4 = perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
-//        // Get their uniform location
-//        val modelLoc = glGetUniformLocation(cubeShader.program, "model")
-//        val viewLoc = glGetUniformLocation(cubeShader.program, "view")
-//        val projLoc = glGetUniformLocation(cubeShader.program, "projection")
-//        // Pass the matrices to the shader
-//        glUniformMatrix4fv(viewLoc, false, createFloatMat4(view.buffer))
-//        // Note: currently we set the projection matrix each frame, but since the projection matrix rarely changes it's often best practice to set it outside the main loop only once.
-//        glUniformMatrix4fv(projLoc, false, createFloatMat4(projection.buffer))
-//
-//        glBindVertexArray(cubeVao)
-//        for (i in 0..9) {
-//            val angle = 20.0f * i
-//            val model = Mat4.MAT4_IDENTITY
-//                .translate(cubePositions[i])
-//                .rotate(toRadians(angle.toDouble()).toFloat(), Vec3(1.0f, 0.3f, 0.5f))
-////                .scale(Vec3(0.1f * i, 0.3f * i, 0.2f * i))
-//            glUniformMatrix4fv(modelLoc, false, createFloatMat4(model.buffer))
-//
-//            glDrawArrays(GL_TRIANGLES, 0, 36)
-//        }
-//        glBindVertexArray(0)
-//
-//        glfwSwapBuffers(window)
     }
 }
 
-fun loadTexture(texturePath: String): Int {
-    val texture = glGenTextures()
-    glBindTexture(GL_TEXTURE_2D, texture)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR)
-
-    val imagePath = object {}.javaClass.getResource(texturePath)
-    val imageFile = File(imagePath.toURI())
-    val imageWidth: Int
-    val imageHeight: Int
-
-    val widthBuffer = BufferUtils.createIntBuffer(1)
-    val heightBuffer = BufferUtils.createIntBuffer(1)
-    val comp = BufferUtils.createIntBuffer(1)
-    val buffer: ByteBuffer =
-        stbi_load(imageFile.toString(), widthBuffer, heightBuffer, comp, 3) ?: throw IOException(stbi_failure_reason())
-
-    imageWidth = widthBuffer[0]
-    imageHeight = heightBuffer[0]
-
-    println("Texture $texturePath Width $imageWidth, Height $imageHeight")
-
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGB,
-        imageWidth,
-        imageHeight,
-        0,
-        GL_RGB,
-        GL_UNSIGNED_BYTE,
-        createByteBuffer(buffer)
-    )
-    glGenerateMipmap(GL_TEXTURE_2D)
-    glBindTexture(GL_TEXTURE_2D, 0)
-
-    return texture
-}
 
 fun processInput() {
     // Camera controls
