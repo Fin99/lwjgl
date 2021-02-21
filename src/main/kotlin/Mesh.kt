@@ -3,6 +3,8 @@ import org.lwjgl.opengl.GL20.glEnableVertexAttribArray
 import org.lwjgl.opengl.GL20.glVertexAttribPointer
 import org.lwjgl.opengl.GL30.glBindVertexArray
 import org.lwjgl.opengl.GL30.glGenVertexArrays
+import org.lwjgl.opengl.GL31.glDrawArraysInstanced
+import org.lwjgl.opengl.GL31.glDrawElementsInstanced
 import kotlin.properties.Delegates
 
 class Mesh(
@@ -39,7 +41,8 @@ class Mesh(
 
         // отрисовывем полигональную сетку
         glBindVertexArray(vao!!)
-        glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0)
+        glDrawElementsInstanced(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0, 10)
+//        glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0)
         glBindVertexArray(0)
     }
 

@@ -12,6 +12,8 @@ import org.lwjgl.opengl.GL30.*
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
 import java.nio.FloatBuffer
+import kotlin.math.cos
+import kotlin.math.sin
 
 
 private var window: Long = 0
@@ -214,6 +216,7 @@ private fun loop() {
     val torModel = Model("tor.obj")
     val sphereModel = Model("sphere.obj")
     val monkeyModel = Model("monkey.obj")
+    val snowModel = Model("sphere.obj")
 
     while (!glfwWindowShouldClose(window)) {
         val currentFrame = glfwGetTime().toFloat()
@@ -224,17 +227,30 @@ private fun loop() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f)
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-        cubeDraw(cubeVao, diffuseMap, specularMap)
+//        cubeDraw(cubeVao, diffuseMap, specularMap)
 
-        lightDraw(lightVao)
+//        lightDraw(lightVao)
+//
+//        blenderDraw(blenderModel, Vec3(0f, 0f, -5f))
+//        blenderDraw(torModel, Vec3(5f, 0f, -5f))
+//        blenderDraw(sphereModel, Vec3(5f, 5f, -5f))
+//        blenderDraw(monkeyModel, Vec3(0f, 5f, -5f))
 
-        blenderDraw(blenderModel, Vec3(0f, 0f, -5f))
-        blenderDraw(torModel, Vec3(5f, 0f, -5f))
-        blenderDraw(sphereModel, Vec3(5f, 5f, -5f))
-        blenderDraw(monkeyModel, Vec3(0f, 5f, -5f))
+        snowDraw(snowModel)
 
         glfwSwapBuffers(window)
         glfwPollEvents()
+    }
+}
+
+fun snowDraw(snowModel: Model) {
+//    val now = System.currentTimeMillis()
+//    blenderDraw(snowModel, Vec3(0f, 0f, 0f), Vec3(0.05f, 0.05f, 0.05f))
+    for (i in 0..100) {
+        val x = (-2.5 + i * 0.06) * sin(i.toDouble()) + sin(System.currentTimeMillis()*i * 0.000005)
+        val y = (-2 + i * 0.05) * cos(i.toDouble())+ cos(System.currentTimeMillis()*i * 0.000005)
+//        val z = (-1 + i * 0.01)
+        blenderDraw(snowModel, Vec3(x.toFloat(), y.toFloat(), 0f), Vec3(0.05f, 0.05f, 0.05f))
     }
 }
 
@@ -255,30 +271,6 @@ fun cubeDraw(cubeVao: Int, diffuseMap: Int, specularMap: Int) {
     cubeShader.setFloat("pointLights[0].constant", 1.0f)
     cubeShader.setFloat("pointLights[0].linear", 0.09f)
     cubeShader.setFloat("pointLights[0].quadratic", 0.032f)
-    // point light 2
-//    cubeShader.setVec3("pointLights[1].position", lightPositions[1])
-//    cubeShader.setVec3("pointLights[1].ambient", 0.05f, 0.05f, 0.05f)
-//    cubeShader.setVec3("pointLights[1].diffuse", 0.8f, 0.8f, 0.8f)
-//    cubeShader.setVec3("pointLights[1].specular", 1.0f, 1.0f, 1.0f)
-//    cubeShader.setFloat("pointLights[1].constant", 1.0f)
-//    cubeShader.setFloat("pointLights[1].linear", 0.09f)
-//    cubeShader.setFloat("pointLights[1].quadratic", 0.032f)
-//    // point light 3
-//    cubeShader.setVec3("pointLights[2].position", lightPositions[2])
-//    cubeShader.setVec3("pointLights[2].ambient", 0.05f, 0.05f, 0.05f)
-//    cubeShader.setVec3("pointLights[2].diffuse", 0.8f, 0.8f, 0.8f)
-//    cubeShader.setVec3("pointLights[2].specular", 1.0f, 1.0f, 1.0f)
-//    cubeShader.setFloat("pointLights[2].constant", 1.0f)
-//    cubeShader.setFloat("pointLights[2].linear", 0.09f)
-//    cubeShader.setFloat("pointLights[2].quadratic", 0.032f)
-//    // point light 4
-//    cubeShader.setVec3("pointLights[3].position", lightPositions[3])
-//    cubeShader.setVec3("pointLights[3].ambient", 0.05f, 0.05f, 0.05f)
-//    cubeShader.setVec3("pointLights[3].diffuse", 0.8f, 0.8f, 0.8f)
-//    cubeShader.setVec3("pointLights[3].specular", 1.0f, 1.0f, 1.0f)
-//    cubeShader.setFloat("pointLights[3].constant", 1.0f)
-//    cubeShader.setFloat("pointLights[3].linear", 0.09f)
-//    cubeShader.setFloat("pointLights[3].quadratic", 0.032f)
     // spotLight
     cubeShader.setVec3("spotLight.position", camera.position)
     cubeShader.setVec3("spotLight.direction", camera.front)
@@ -341,17 +333,20 @@ fun lightDraw(lightVao: Int) {
     }
 }
 
-fun blenderDraw(blenderModel: Model, translate: Vec3) {
+fun blenderDraw(blenderModel: Model, translate: Vec3, scale: Vec3 = Vec3(1f, 1f, 1f)) {
     blenderShader.use()
     // view/projection transformations
     var projection =
         perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
     var view = camera.getViewMatrix()
     blenderShader.setMat4("projection", projection)
-    blenderShader.setMat4("view", view)
+    blenderShader.setMat4("view", Mat4.MAT4_IDENTITY.translate(Vec3(0f, 0f, -4f)))
+//    println(view)
+//    blenderShader.setMat4("view", view)
 
     var model = Mat4.MAT4_IDENTITY
     model = model.translate(translate)
+    model = model.scale(scale)
     blenderShader.setMat4("model", model)
 
     blenderModel.draw(blenderShader)
