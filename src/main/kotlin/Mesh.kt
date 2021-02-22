@@ -3,9 +3,7 @@ import org.lwjgl.opengl.GL20.glEnableVertexAttribArray
 import org.lwjgl.opengl.GL20.glVertexAttribPointer
 import org.lwjgl.opengl.GL30.glBindVertexArray
 import org.lwjgl.opengl.GL30.glGenVertexArrays
-import org.lwjgl.opengl.GL31.glDrawArraysInstanced
 import org.lwjgl.opengl.GL31.glDrawElementsInstanced
-import kotlin.properties.Delegates
 
 class Mesh(
     var vertices: List<Vertex>,
@@ -20,7 +18,7 @@ class Mesh(
     var vbo: Int? = null
     var ebo: Int? = null
 
-    fun draw(shader: Shader) {
+    fun draw(shader: Shader, snow: Boolean) {
         var diffuseNr = 1
         var specularNr = 1
         for (i in textures.indices) {
@@ -41,8 +39,11 @@ class Mesh(
 
         // отрисовывем полигональную сетку
         glBindVertexArray(vao!!)
-        glDrawElementsInstanced(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0, 10)
-//        glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0)
+        if (snow) {
+            glDrawElementsInstanced(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0, 100)
+        } else {
+            glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0)
+        }
         glBindVertexArray(0)
     }
 

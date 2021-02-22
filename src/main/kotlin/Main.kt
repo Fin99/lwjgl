@@ -12,7 +12,6 @@ import org.lwjgl.opengl.GL30.*
 import org.lwjgl.system.MemoryStack.stackPush
 import org.lwjgl.system.MemoryUtil.NULL
 import java.nio.FloatBuffer
-import kotlin.math.cos
 import kotlin.math.sin
 
 
@@ -179,7 +178,10 @@ private fun loop() {
     blenderShader = Shader("shaders/blender/vertex_shader.gl", "shaders/blender/fragment_shader.gl")
     cubeShader = Shader("shaders/cube/vertex_shader.gl", "shaders/cube/fragment_shader.gl")
     lightShader = Shader("shaders/light/vertex_shader.gl", "shaders/light/fragment_shader.gl")
-    snowShader = Shader("shaders/snow/vertex_shader.gl", "shaders/snow/fragment_shader.gl")
+    snowShader = Shader(
+        "shaders/snow/vertex_shader.gl",
+        "shaders/snow/fragment_shader.gl"
+    )
 
     val cubeVao = glGenVertexArrays()
     val vbo1 = glGenBuffers()
@@ -227,31 +229,45 @@ private fun loop() {
         glClearColor(0.1f, 0.1f, 0.1f, 1.0f)
         glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
 
-//        cubeDraw(cubeVao, diffuseMap, specularMap)
+        cubeDraw(cubeVao, diffuseMap, specularMap)
 
-//        lightDraw(lightVao)
-//
-//        blenderDraw(blenderModel, Vec3(0f, 0f, -5f))
-//        blenderDraw(torModel, Vec3(5f, 0f, -5f))
-//        blenderDraw(sphereModel, Vec3(5f, 5f, -5f))
-//        blenderDraw(monkeyModel, Vec3(0f, 5f, -5f))
+        lightDraw(lightVao)
 
-        snowDraw(snowModel)
+        blenderDraw(blenderModel, Vec3(0f, 0f, -5f))
+        blenderDraw(torModel, Vec3(5f, 0f, -5f))
+        blenderDraw(sphereModel, Vec3(5f, 5f, -5f))
+        blenderDraw(monkeyModel, Vec3(0f, 5f, -5f))
+
+        for (i in 10..1000 step 10)
+            snowDraw(snowModel, (i + sin((time + i).toDouble()) * 5).toInt())
 
         glfwSwapBuffers(window)
         glfwPollEvents()
     }
 }
 
-fun snowDraw(snowModel: Model) {
-//    val now = System.currentTimeMillis()
-//    blenderDraw(snowModel, Vec3(0f, 0f, 0f), Vec3(0.05f, 0.05f, 0.05f))
-    for (i in 0..100) {
-        val x = (-2.5 + i * 0.06) * sin(i.toDouble()) + sin(System.currentTimeMillis()*i * 0.000005)
-        val y = (-2 + i * 0.05) * cos(i.toDouble())+ cos(System.currentTimeMillis()*i * 0.000005)
-//        val z = (-1 + i * 0.01)
-        blenderDraw(snowModel, Vec3(x.toFloat(), y.toFloat(), 0f), Vec3(0.05f, 0.05f, 0.05f))
-    }
+var time = System.currentTimeMillis()
+
+fun snowDraw(snowModel: Model, initHeight: Int) {
+    snowShader.use()
+    snowShader.setFloat("height", (initHeight - (System.currentTimeMillis() - time) * 0.01).toFloat())
+    snowShader.setInt("size", 10)
+
+    // view/projection transformations
+    var projection =
+        perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
+    var view = camera.getViewMatrix()
+    snowShader.setMat4("projection", projection)
+    snowShader.setMat4("view", view)
+
+    val translate = Vec3(0f, 0f, 0f)
+    val scale = Vec3(0.005f, 0.005f, 0.005f)
+    var model = Mat4.MAT4_IDENTITY
+    model = model.translate(translate)
+    model = model.scale(scale)
+    snowShader.setMat4("model", model)
+
+    snowModel.draw(snowShader, true)
 }
 
 fun cubeDraw(cubeVao: Int, diffuseMap: Int, specularMap: Int) {
@@ -304,7 +320,6 @@ fun cubeDraw(cubeVao: Int, diffuseMap: Int, specularMap: Int) {
     model = model.translate(cubePositions)
     val angle = 20.0 * 1
 
-//            model = model.rotate(toRadians(angle).toFloat(), Vec3(1.0f, 0.3f, 0.5f))
     model = model.multiply(Matrices.rotate(FastMath.toRadians(angle).toFloat(), Vec3(1.0f, 0.0f, 0.0f)))
     model = model.multiply(Matrices.rotate(FastMath.toRadians(angle * 0.3).toFloat(), Vec3(0.0f, 1.0f, 0.0f)))
     model = model.multiply(Matrices.rotate(FastMath.toRadians(angle * 0.5).toFloat(), Vec3(0.0f, 0.0f, 1.0f)))
@@ -340,9 +355,7 @@ fun blenderDraw(blenderModel: Model, translate: Vec3, scale: Vec3 = Vec3(1f, 1f,
         perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
     var view = camera.getViewMatrix()
     blenderShader.setMat4("projection", projection)
-    blenderShader.setMat4("view", Mat4.MAT4_IDENTITY.translate(Vec3(0f, 0f, -4f)))
-//    println(view)
-//    blenderShader.setMat4("view", view)
+    blenderShader.setMat4("view", view)
 
     var model = Mat4.MAT4_IDENTITY
     model = model.translate(translate)
@@ -350,7 +363,6 @@ fun blenderDraw(blenderModel: Model, translate: Vec3, scale: Vec3 = Vec3(1f, 1f,
     blenderShader.setMat4("model", model)
 
     blenderModel.draw(blenderShader)
-
 }
 
 
@@ -361,5 +373,4 @@ fun processInput() {
     if (keys[GLFW_KEY_A]) camera.processKeyboard(CameraMovement.LEFT, deltaTime)
     if (keys[GLFW_KEY_D]) camera.processKeyboard(CameraMovement.RIGHT, deltaTime)
     if (keys[GLFW_KEY_Q]) camera.processKeyboard(CameraMovement.RIGHT, deltaTime)
-//    if (keys[GLFW_KEY_E]) camera.processKeyboard(CameraMovement.RIGHT, deltaTime)
 }

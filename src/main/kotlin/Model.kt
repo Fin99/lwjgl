@@ -12,8 +12,8 @@ class Model(path: String) {
         loadModel(path)
     }
 
-    fun draw(shader: Shader) {
-        meshes.forEach { it.draw(shader) }
+    fun draw(shader: Shader, snow: Boolean = false) {
+        meshes.forEach { it.draw(shader, snow) }
     }
 
     fun loadModel(path: String) {

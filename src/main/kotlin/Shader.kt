@@ -9,7 +9,10 @@ class Shader(vertexPath: String, fragmentPath: String) {
         val vertexShader = glCreateShader(GL_VERTEX_SHADER)
         glShaderSource(vertexShader, object {}.javaClass.getResource(vertexPath).readText())
         glCompileShader(vertexShader)
-        println(glGetShaderi(vertexShader, GL_COMPILE_STATUS))
+        if (glGetShaderi(vertexShader, GL_COMPILE_STATUS) == 0) {
+            println("ERROR")
+            println(glGetShaderInfoLog(vertexShader))
+        }
         val fragmentShader = glCreateShader(GL_FRAGMENT_SHADER)
         glShaderSource(fragmentShader, object {}.javaClass.getResource(fragmentPath).readText())
         glCompileShader(fragmentShader)
