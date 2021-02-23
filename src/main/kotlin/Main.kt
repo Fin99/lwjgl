@@ -251,7 +251,7 @@ var time = System.currentTimeMillis()
 fun snowDraw(snowModel: Model, initHeight: Int) {
     snowShader.use()
     snowShader.setFloat("height", (initHeight - (System.currentTimeMillis() - time) * 0.01).toFloat())
-    snowShader.setInt("size", 10)
+    snowShader.setInt("size", 20)
 
     // view/projection transformations
     var projection =

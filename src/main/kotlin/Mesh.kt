@@ -40,7 +40,7 @@ class Mesh(
         // отрисовывем полигональную сетку
         glBindVertexArray(vao!!)
         if (snow) {
-            glDrawElementsInstanced(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0, 100)
+            glDrawElementsInstanced(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0, 400)
         } else {
             glDrawElements(GL_TRIANGLES, indices.size, GL_UNSIGNED_INT, 0)
         }
