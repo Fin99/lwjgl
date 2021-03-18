@@ -116,7 +116,7 @@ fun init() {
     println("D $GLFW_KEY_D")
     glfwSetKeyCallback(window) { window: Long, key: Int, scancode: Int, action: Int, mods: Int ->
         println(key)
-        //cout << key << endl;
+
         if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
             glfwSetWindowShouldClose(window, true)
         if (key in 0..1023) {
@@ -135,7 +135,7 @@ fun init() {
         }
 
         val xoffset = xPos - lastX
-        val yoffset = lastY - yPos // Reversed since y-coordinates go from bottom to left
+        val yoffset = lastY - yPos
 
 
         lastX = xPos
@@ -151,18 +151,14 @@ fun init() {
 
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED)
 
-    // Get the thread stack and push a new frame
     stackPush().use { stack ->
-        val pWidth = stack.mallocInt(1) // int*
-        val pHeight = stack.mallocInt(1) // int*
+        val pWidth = stack.mallocInt(1)
+        val pHeight = stack.mallocInt(1)
 
-        // Get the window size passed to glfwCreateWindow
         glfwGetWindowSize(window, pWidth, pHeight)
 
-        // Get the resolution of the primary monitor
         val vidmode = glfwGetVideoMode(glfwGetPrimaryMonitor())
 
-        // Center the window
         glfwSetWindowPos(window, (vidmode!!.width() - pWidth[0]) / 2, (vidmode.height() - pHeight[0]) / 2)
 
         glfwMakeContextCurrent(window)
@@ -253,7 +249,6 @@ fun snowDraw(snowModel: Model, initHeight: Int) {
     snowShader.setFloat("height", (initHeight - (System.currentTimeMillis() - time) * 0.01).toFloat())
     snowShader.setInt("size", 20)
 
-    // view/projection transformations
     var projection =
         perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
     var view = camera.getViewMatrix()
@@ -272,48 +267,22 @@ fun snowDraw(snowModel: Model, initHeight: Int) {
 
 fun cubeDraw(cubeVao: Int, diffuseMap: Int, specularMap: Int) {
     cubeShader.use()
-    cubeShader.setVec3("viewPos", camera.position)
+
     cubeShader.setFloat("material.shininess", 32.0f)
+    setLight(cubeShader)
 
-    cubeShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f)
-    cubeShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f)
-    cubeShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f)
-    cubeShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f)
-    // point light 1
-    cubeShader.setVec3("pointLights[0].position", lightPositions[0])
-    cubeShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f)
-    cubeShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f)
-    cubeShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f)
-    cubeShader.setFloat("pointLights[0].constant", 1.0f)
-    cubeShader.setFloat("pointLights[0].linear", 0.09f)
-    cubeShader.setFloat("pointLights[0].quadratic", 0.032f)
-    // spotLight
-    cubeShader.setVec3("spotLight.position", camera.position)
-    cubeShader.setVec3("spotLight.direction", camera.front)
-    cubeShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f)
-    cubeShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f)
-    cubeShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f)
-    cubeShader.setFloat("spotLight.constant", 1.0f)
-    cubeShader.setFloat("spotLight.linear", 0.09f)
-    cubeShader.setFloat("spotLight.quadratic", 0.032f)
-    cubeShader.setFloat("spotLight.cutOff", FastMath.cos(FastMath.toRadians(12.5)).toFloat())
-    cubeShader.setFloat("spotLight.outerCutOff", FastMath.cos(FastMath.toRadians(15.0)).toFloat())
-
-    // view/projection transformations
     var projection =
         perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
     var view = camera.getViewMatrix()
     cubeShader.setMat4("projection", projection)
     cubeShader.setMat4("view", view)
 
-    // bind diffuse map
     glActiveTexture(GL_TEXTURE0)
     glBindTexture(GL_TEXTURE_2D, diffuseMap)
-    // bind specular map
+
     glActiveTexture(GL_TEXTURE1)
     glBindTexture(GL_TEXTURE_2D, specularMap)
 
-// render containers
     glBindVertexArray(cubeVao)
 
     var model = Mat4.MAT4_IDENTITY
@@ -328,16 +297,42 @@ fun cubeDraw(cubeVao: Int, diffuseMap: Int, specularMap: Int) {
     glDrawArrays(GL_TRIANGLES, 0, 36)
 }
 
+fun setLight(cubeShader: Shader) {
+    cubeShader.setVec3("viewPos", camera.position)
+    cubeShader.setVec3("dirLight.direction", -0.2f, -1.0f, -0.3f)
+    cubeShader.setVec3("dirLight.ambient", 0.05f, 0.05f, 0.05f)
+    cubeShader.setVec3("dirLight.diffuse", 0.4f, 0.4f, 0.4f)
+    cubeShader.setVec3("dirLight.specular", 0.5f, 0.5f, 0.5f)
+
+    cubeShader.setVec3("pointLights[0].position", lightPositions[0])
+    cubeShader.setVec3("pointLights[0].ambient", 0.05f, 0.05f, 0.05f)
+    cubeShader.setVec3("pointLights[0].diffuse", 0.8f, 0.8f, 0.8f)
+    cubeShader.setVec3("pointLights[0].specular", 1.0f, 1.0f, 1.0f)
+    cubeShader.setFloat("pointLights[0].constant", 1.0f)
+    cubeShader.setFloat("pointLights[0].linear", 0.09f)
+    cubeShader.setFloat("pointLights[0].quadratic", 0.032f)
+
+    cubeShader.setVec3("spotLight.position", camera.position)
+    cubeShader.setVec3("spotLight.direction", camera.front)
+    cubeShader.setVec3("spotLight.ambient", 0.0f, 0.0f, 0.0f)
+    cubeShader.setVec3("spotLight.diffuse", 1.0f, 1.0f, 1.0f)
+    cubeShader.setVec3("spotLight.specular", 1.0f, 1.0f, 1.0f)
+    cubeShader.setFloat("spotLight.constant", 1.0f)
+    cubeShader.setFloat("spotLight.linear", 0.09f)
+    cubeShader.setFloat("spotLight.quadratic", 0.032f)
+    cubeShader.setFloat("spotLight.cutOff", FastMath.cos(FastMath.toRadians(12.5)).toFloat())
+    cubeShader.setFloat("spotLight.outerCutOff", FastMath.cos(FastMath.toRadians(15.0)).toFloat())
+}
+
 fun lightDraw(lightVao: Int) {
     var projection =
         perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
     var view = camera.getViewMatrix()
-    // also draw the lamp object(s)
+
     lightShader.use()
     lightShader.setMat4("projection", projection)
     lightShader.setMat4("view", view)
 
-    // we now draw as many light bulbs as we have point lights.
     glBindVertexArray(lightVao)
     for (i in 0..0) {
         var model = Mat4.MAT4_IDENTITY
@@ -350,7 +345,8 @@ fun lightDraw(lightVao: Int) {
 
 fun blenderDraw(blenderModel: Model, translate: Vec3, scale: Vec3 = Vec3(1f, 1f, 1f)) {
     blenderShader.use()
-    // view/projection transformations
+    setLight(blenderShader)
+
     var projection =
         perspective(camera.zoom, WIDTH / HEIGHT.toFloat(), 0.1f, 100.0f)
     var view = camera.getViewMatrix()
@@ -367,7 +363,6 @@ fun blenderDraw(blenderModel: Model, translate: Vec3, scale: Vec3 = Vec3(1f, 1f,
 
 
 fun processInput() {
-    // Camera controls
     if (keys[GLFW_KEY_W]) camera.processKeyboard(CameraMovement.FORWARD, deltaTime)
     if (keys[GLFW_KEY_S]) camera.processKeyboard(CameraMovement.BACKWARD, deltaTime)
     if (keys[GLFW_KEY_A]) camera.processKeyboard(CameraMovement.LEFT, deltaTime)

@@ -13,10 +13,12 @@ class Shader(vertexPath: String, fragmentPath: String) {
             println("ERROR")
             println(glGetShaderInfoLog(vertexShader))
         }
+
         val fragmentShader = glCreateShader(GL_FRAGMENT_SHADER)
         glShaderSource(fragmentShader, object {}.javaClass.getResource(fragmentPath).readText())
         glCompileShader(fragmentShader)
         println(glGetShaderi(fragmentShader, GL_COMPILE_STATUS))
+
         program = glCreateProgram()
         glAttachShader(program, vertexShader)
         glAttachShader(program, fragmentShader)
